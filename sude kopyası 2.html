@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Basit Yol Oyunu</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #222;
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+
+  #startScreen, #gameArea {
+    position: relative;
+    width: 400px;
+    height: 600px;
+    border: 2px solid #fff;
+    overflow: hidden;
+    background: linear-gradient(#444 50%, #555 50%);
+    background-size: 100% 40px;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  #startScreen {
+    display: flex;
+    text-align: center;
+    color: #fff;
+  }
+
+  #startButton {
+    padding: 20px 40px;
+    font-size: 28px;
+    font-weight: bold;
+    border-radius: 15px;
+    border: none;
+    background-color: #ff0;
+    color: #000;
+    cursor: pointer;
+    box-shadow: 0 0 10px #fff;
+    margin-bottom: 20px;
+  }
+
+  #description {
+    font-size: 14px;
+    color: #ccc;
+    max-width: 300px;
+  }
+
+  #player {
+    position: absolute;
+    bottom: 50px;
+    left: 180px;
+    width: 60px;
+    height: 60px;
+    background-color: #000;
+    color: #fff;
+    font-weight: bold;
+    text-align: center;
+    line-height: 60px;
+    border-radius: 50%;
+    user-select: none;
+  }
+
+  .obstacle {
+    position: absolute;
+    background-color: #fff;
+    border-radius: 50%;
+    color: #000;
+    text-align: center;
+    font-weight: bold;
+    line-height: 1;
+    user-select: none;
+    padding: 5px;
+    box-sizing: border-box;
+    box-shadow: 0 0 15px 5px orange, 0 0 25px 10px red, 0 0 35px 15px yellow;
+  }
+
+  .flashText {
+    position: absolute;
+    font-size: 24px;
+    font-weight: bold;
+    color: yellow;
+    text-shadow: 0 0 5px #fff;
+    animation: flash 0.5s alternate infinite;
+    text-align: center;
+    width: 100%;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .levelUp {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    background-color: #ff0;
+    color: #000;
+    font-weight: bold;
+    font-size: 22px;
+    border-radius: 10px;
+    text-align: center;
+    box-shadow: 0 0 10px #fff;
+  }
+
+  @keyframes flash {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  #winMessage {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ff0;
+    font-size: 28px;
+    font-weight: bold;
+    text-align: center;
+    padding: 20px 30px;
+    border: 3px solid #ff0;
+    border-radius: 15px;
+    text-shadow: 2px 2px 5px #f00, 0 0 10px #fff;
+    background-color: rgba(0,0,0,0.7);
+  }
+</style>
+</head>
+<body>
+
+<div id="startScreen">
+  <button id="startButton">BAŞLAT</button>
+  <div id="description">Bu oyunun yapılma amacı tamamen yoktur, amaçsızdır manasında.</div>
+</div>
+
+<div id="gameArea">
+  <div id="player">SUGDE</div>
+  <div id="winMessage">KAZANDIN, TEKRAR OYNAMANA GEREK YOK ÇÜNKÜ NEDEN OLSUN</div>
+</div>
+
+<audio id="bgMusic" src="sude.mp3" loop></audio>
+
+<script>
+const startScreen = document.getElementById('startScreen');
+const startButton = document.getElementById('startButton');
+const gameArea = document.getElementById('gameArea');
+startScreen.style.display = 'flex';
+
+startButton.addEventListener('click', () => {
+  startScreen.style.display = 'none';
+  gameArea.style.display = 'block';
+
+  // Müziği başlat
+  const music = document.getElementById('bgMusic');
+  music.play();
+
+  startGame();
+});
+
+function startGame() {
+  const player = document.getElementById('player');
+  const winMessage = document.getElementById('winMessage');
+
+  let offset = 0;
+  function animateRoad() {
+    offset += 4;
+    gameArea.style.backgroundPosition = `0px ${offset}px`;
+    requestAnimationFrame(animateRoad);
+  }
+  animateRoad();
+
+  let playerPos = 180;
+  let moveLeft = false;
+  let moveRight = false;
+  const speed = 5;
+
+  document.addEventListener('keydown', e => {
+    if(e.key === 'ArrowLeft') moveLeft = true;
+    if(e.key === 'ArrowRight') moveRight = true;
+  });
+
+  document.addEventListener('keyup', e => {
+    if(e.key === 'ArrowLeft') moveLeft = false;
+    if(e.key === 'ArrowRight') moveRight = false;
+  });
+
+  function movePlayer() {
+    if(moveLeft) {
+      playerPos -= speed;
+      if(playerPos < 0) playerPos = 0;
+    }
+    if(moveRight) {
+      playerPos += speed;
+      const maxRight = gameArea.clientWidth - player.offsetWidth;
+      if(playerPos > maxRight) playerPos = maxRight;
+    }
+    player.style.left = playerPos + 'px';
+    requestAnimationFrame(movePlayer);
+  }
+  movePlayer();
+
+  const obstacles = [];
+  const spawnInterval = 3000;
+  const texts = [
+    "ahmet", "fitness çocuk", "yatı olan çocuk", "hinge algoritması",
+    "slm güzellik :))", "nereden :))", ";))))", "mrb"
+  ];
+  let passedCount = 0;
+
+  function spawnObstacle() {
+    if(passedCount >= 9) return;
+
+    const obstacle = document.createElement('div');
+    obstacle.classList.add('obstacle');
+
+    let text;
+    if(passedCount === 8) {
+      text = "KUZEY";
+      obstacle.style.backgroundColor = "#0ff";
+      obstacle.style.boxShadow = "0 0 20px 8px #0ff, 0 0 30px 12px #0ff, 0 0 40px 16px #0ff";
+      obstacle.isBalloon = true;
+    } else {
+      text = texts[Math.floor(Math.random() * texts.length)];
+      obstacle.isBalloon = false;
+    }
+    obstacle.textContent = text;
+
+    const fontSize = 14;
+    obstacle.style.fontSize = fontSize + 'px';
+    const padding = 20;
+    const textWidth = text.length * fontSize;
+    const size = Math.max(40, textWidth + padding);
+    obstacle.style.width = size + 'px';
+    obstacle.style.height = size + 'px';
+    obstacle.style.lineHeight = size + 'px';
+
+    obstacle.style.left = Math.random() * (gameArea.clientWidth - size) + 'px';
+    obstacle.style.top = '0px';
+    gameArea.appendChild(obstacle);
+    obstacles.push(obstacle);
+    obstacle.passed = false;
+  }
+
+  setInterval(spawnObstacle, spawnInterval);
+
+  const obstacleSpeed = 3;
+  let balloonAngle = 0;
+
+  function showMessage(text, duration=1000, className="flashText") {
+    const msg = document.createElement('div');
+    msg.classList.add(className);
+    msg.textContent = text;
+    gameArea.appendChild(msg);
+    setTimeout(() => msg.remove(), duration);
+  }
+
+  function moveObstacles() {
+    for(let i = obstacles.length - 1; i >= 0; i--) {
+      const obs = obstacles[i];
+      let top = parseFloat(obs.style.top);
+      top += obstacleSpeed;
+      obs.style.top = top + 'px';
+
+      if(obs.isBalloon) {
+        balloonAngle += 0.05;
+        obs.style.left = parseFloat(obs.style.left) + Math.sin(balloonAngle) * 2 + 'px';
+      }
+
+      const playerRect = player.getBoundingClientRect();
+      const obsRect = obs.getBoundingClientRect();
+
+      if(!(playerRect.right < obsRect.left ||
+           playerRect.left > obsRect.right ||
+           playerRect.bottom < obsRect.top ||
+           playerRect.top > obsRect.bottom)) {
+        alert('Oyun Bitti!');
+        window.location.reload();
+      }
+
+      if(!obs.passed && obsRect.bottom > playerRect.top + player.offsetHeight) {
+        obs.passed = true;
+        passedCount++;
+
+        const flashMessages = ["helal be!", "budur suğde hanım!", "jokic style"];
+        showMessage(flashMessages[Math.floor(Math.random() * flashMessages.length)]);
+
+        if(passedCount % 3 === 0 && !obs.isBalloon) {
+          showMessage("SEVİYE ATLADIN", 1500, "levelUp");
+        }
+
+        if(passedCount >= 9) {
+          winMessage.style.display = "block";
+        }
+      }
+
+      if(top > gameArea.clientHeight) {
+        obs.remove();
+        obstacles.splice(i, 1);
+      }
+    }
+
+    if(passedCount < 9) requestAnimationFrame(moveObstacles);
+  }
+
+  moveObstacles();
+}
+</script>
+
+</body>
+</html>
